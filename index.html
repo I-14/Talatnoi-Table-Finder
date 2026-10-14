@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Talatnoi Table Finder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Prompt', sans-serif;
+            background: linear-gradient(135deg, #e0f2f1 0%, #b2dfdb 100%);
+            min-height: 100vh;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+        }
+        .table-icon {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .table-icon:hover { transform: scale(1.05); }
+        .vacant { filter: drop-shadow(0 0 10px rgba(74, 222, 128, 0.6)); stroke: #16a34a; fill: rgba(187, 247, 208, 0.7); }
+        .occupied { filter: drop-shadow(0 0 10px rgba(248, 113, 113, 0.6)); stroke: #dc2626; fill: rgba(254, 202, 202, 0.7); }
+    </style>
+</head>
+<body class="p-4 md:p-8 relative overflow-x-hidden">
+    <!-- Header & Stats -->
+    <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 glass rounded-2xl p-4 md:p-6">
+        <div class="flex items-center gap-3 mb-4 md:mb-0">
+            <svg class="w-8 h-8 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+            <h1 class="text-2xl font-semibold text-gray-800">ตลาดน้อย มมส Table Finder</h1>
+        </div>
+        <div class="flex gap-6 text-center">
+            <div><p class="text-sm text-gray-600">ทั้งหมด</p><p class="text-xl font-bold text-gray-800" id="total-count">0</p></div>
+            <div><p class="text-sm text-gray-600">ว่าง</p><p class="text-xl font-bold text-green-600" id="vacant-count">0</p></div>
+            <div><p class="text-sm text-gray-600">ไม่ว่าง</p><p class="text-xl font-bold text-red-600" id="occupied-count">0</p></div>
+        </div>
+        <div class="text-right mt-4 md:mt-0">
+            <div id="clock" class="text-3xl font-light text-gray-800">00:00:00</div>
+            <p class="text-sm text-gray-500">เวลาเรียลไทม์</p>
+        </div>
+    </div>
+
+    <!-- Tables Grid -->
+    <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6" id="zones-container">
+        <!-- โซนต่างๆ จะถูกสร้างด้วย JavaScript -->
+    </div>
+
+    <!-- Bottom Controls -->
+    <div class="max-w-6xl mx-auto mt-8 flex justify-center gap-4">
+        <button onclick="randomizeTables()" class="glass px-6 py-3 rounded-full text-gray-700 hover:bg-white/60 font-medium transition">
+            🎲 สุ่มสถานะโต๊ะ (จำลอง)
+        </button>
+        <button class="glass px-6 py-3 rounded-full text-red-600 hover:bg-white/60 font-medium transition" onclick="alert('ระบบแจ้งปัญหาเปิดใช้งานแล้ว')">
+            ⚠️ แจ้งปัญหา
+        </button>
+    </div>
+
+    <script>
+        // นาฬิกาเรียลไทม์
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').textContent = now.toLocaleTimeString('th-TH');
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // ข้อมูลโต๊ะ
+        const zones = [
+            { id: 'front', name: 'โซนหน้าตลาด', tables: 6 },
+            { id: 'middle', name: 'โซนกลาง', tables: 8 },
+            { id: 'back', name: 'โซนหลังตลาด', tables: 6 }
+        ];
+
+        let tableData = [];
+
+        // SVG โต๊ะแบบมินิมอล
+        const tableSVG = `
+        <svg viewBox="0 0 100 100" class="w-full h-full table-icon">
+            <rect x="25" y="25" width="50" height="50" rx="5" stroke-width="3" />
+            <circle cx="15" cy="50" r="8" stroke-width="3" />
+            <circle cx="85" cy="50" r="8" stroke-width="3" />
+            <circle cx="50" cy="15" r="8" stroke-width="3" />
+            <circle cx="50" cy="85" r="8" stroke-width="3" />
+        </svg>`;
+
+        function initTables() {
+            const container = document.getElementById('zones-container');
+            let tableIndex = 1;
+
+            zones.forEach(zone => {
+                const zoneDiv = document.createElement('div');
+                zoneDiv.className = 'glass rounded-2xl p-6';
+                zoneDiv.innerHTML = `<h2 class="text-xl font-medium text-center mb-6 text-gray-700">${zone.name}</h2>`;
+                
+                const gridDiv = document.createElement('div');
+                gridDiv.className = 'grid grid-cols-2 gap-4';
+
+                for (let i = 0; i < zone.tables; i++) {
+                    const isOccupied = Math.random() > 0.5;
+                    tableData.push({ id: tableIndex, isOccupied });
+
+                    const tableWrapper = document.createElement('div');
+                    tableWrapper.className = 'text-center';
+                    tableWrapper.innerHTML = `
+                        <div class="w-24 h-24 mx-auto ${isOccupied ? 'occupied' : 'vacant'}" onclick="toggleTable(${tableIndex - 1}, this)">
+                            ${tableSVG}
+                        </div>
+                        <p class="mt-2 text-sm text-gray-600 font-medium">โต๊ะ #${tableIndex}</p>
+                    `;
+                    gridDiv.appendChild(tableWrapper);
+                    tableIndex++;
+                }
+                zoneDiv.appendChild(gridDiv);
+                container.appendChild(zoneDiv);
+            });
+            updateStats();
+        }
+
+        function toggleTable(index, element) {
+            tableData[index].isOccupied = !tableData[index].isOccupied;
+            if (tableData[index].isOccupied) {
+                element.classList.remove('vacant');
+                element.classList.add('occupied');
+            } else {
+                element.classList.remove('occupied');
+                element.classList.add('vacant');
+            }
+            updateStats();
+        }
+
+        function randomizeTables() {
+            document.getElementById('zones-container').innerHTML = '';
+            tableData = [];
+            initTables();
+        }
+
+        function updateStats() {
+            const total = tableData.length;
+            const occupied = tableData.filter(t => t.isOccupied).length;
+            const vacant = total - occupied;
+
+            document.getElementById('total-count').textContent = total;
+            document.getElementById('vacant-count').textContent = vacant;
+            document.getElementById('occupied-count').textContent = occupied;
+        }
+
+        initTables();
+    </script>
+</body>
+</html>
